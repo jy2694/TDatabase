@@ -1,0 +1,8 @@
+name: TDatabase
+version: '${version}'
+main: com.teger.TDatabase
+api-version: 1.19
+prefix: TDatabase
+authors: [ KTeger ]
+description: Plugin that provides an database solution for managing other plugin.
+website: https://github.com/jy2694

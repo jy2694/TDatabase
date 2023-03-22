@@ -5,6 +5,7 @@ import com.teger.annotation.Column;
 import com.teger.annotation.PrimaryKey;
 import com.teger.exception.ClassValidationException;
 import com.teger.exception.ConnectionException;
+import com.teger.exception.NotRegisteredClassException;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
@@ -34,9 +35,9 @@ public class PlayerDatabaseManager {
         }
     }
 
-    public void initializeDatabase(Plugin plugin, Class... tableClasses) throws ConnectionException, SQLException {
+    public void initializeDatabase(Plugin plugin, Class... tableClasses) throws ConnectionException, SQLException, NotRegisteredClassException {
         if(getConnection(plugin) != null)
-            throw new ConnectionException("Already Connection Opened.");
+            throw new ConnectionException(plugin.getName() + " 플러그인은 이미 연결되어있습니다.");
         //Class Validation Check & Create Connection
         for(Class c : tableClasses)
             try{
@@ -55,7 +56,7 @@ public class PlayerDatabaseManager {
 
     public void closeDatabase(Plugin plugin) throws SQLException, ConnectionException {
         Connection connection = getConnection(plugin);
-        if(connection == null) throw new ConnectionException("Connection is not opened.");
+        if(connection == null) throw new ConnectionException(plugin + "플러그인은 연결되어 있지 않습니다.");
         connection.close();
         connections.remove(plugin);
         registeredClasses.remove(plugin);
@@ -100,7 +101,7 @@ public class PlayerDatabaseManager {
 
     private void createTables(Plugin plugin, Class[] classes) throws ConnectionException, SQLException {
         Connection connection = getConnection(plugin);
-        if(connection == null) throw new ConnectionException("Connection is not opened.");
+        if(connection == null) throw new ConnectionException(plugin + "플러그인은 연결되어 있지 않습니다.");
         for(Class c : classes){
             String query = "CREATE TABLE IF NOT EXISTS " + CaseConverter.camelToSnake(c.getSimpleName()) + "(";
             Field[] fields = c.getDeclaredFields();
@@ -119,9 +120,10 @@ public class PlayerDatabaseManager {
         }
     }
 
-    private Map<String, String> getColumnTypes(Plugin plugin, Class c) throws ConnectionException, SQLException {
+    private Map<String, String> getColumnTypes(Plugin plugin, Class c) throws ConnectionException, SQLException, NotRegisteredClassException {
         Connection connection = getConnection(plugin);
-        if(connection == null) throw new ConnectionException("Connection is not opened.");
+        if(connection == null) throw new ConnectionException(plugin + "플러그인은 연결되어 있지 않습니다.");
+        if(!isRegisteredClass(plugin, c)) throw new NotRegisteredClassException(plugin + "플러그인의 " + c.getSimpleName() + " 클래스는 등록되지 않았습니다.");
         HashMap<String, String> result = new HashMap<>();
         String query = "pragma table_info("+CaseConverter.camelToSnake(c.getSimpleName())+")";
         Statement stm = connection.createStatement();
@@ -132,9 +134,10 @@ public class PlayerDatabaseManager {
         return result;
     }
 
-    private void comparingFields(Plugin plugin, Class c) throws SQLException, ConnectionException{
+    private void comparingFields(Plugin plugin, Class c) throws SQLException, ConnectionException, NotRegisteredClassException {
         Connection connection = getConnection(plugin);
-        if(connection == null) throw new ConnectionException("Connection is not opened.");
+        if(connection == null) throw new ConnectionException(plugin + "플러그인은 연결되어 있지 않습니다.");
+        if(!isRegisteredClass(plugin, c)) throw new NotRegisteredClassException(plugin + "플러그인의 " + c.getSimpleName() + " 클래스는 등록되지 않았습니다.");
         Map<String, String> columns = getColumnTypes(plugin, c);
         Field[] fields = c.getDeclaredFields();
         for(Field field : fields){
@@ -145,9 +148,10 @@ public class PlayerDatabaseManager {
         }
     }
 
-    private String getPrimaryKey(Plugin plugin, Class c) throws SQLException, ConnectionException {
+    private String getPrimaryKey(Plugin plugin, Class c) throws SQLException, ConnectionException, NotRegisteredClassException {
         Connection connection = getConnection(plugin);
-        if(connection == null) throw new ConnectionException("Connection is not opened.");
+        if(connection == null) throw new ConnectionException(plugin + "플러그인은 연결되어 있지 않습니다.");
+        if(!isRegisteredClass(plugin, c)) throw new NotRegisteredClassException(plugin.getName() + "플러그인의 " + c.getSimpleName() + " 클래스는 등록되지 않았습니다.");
         String query = "pragma table_info("+CaseConverter.camelToSnake(c.getSimpleName())+")";
         Statement stm = connection.createStatement();
         ResultSet set = stm.executeQuery(query);
@@ -169,9 +173,9 @@ public class PlayerDatabaseManager {
             InstantiationException,
             IllegalAccessException,
             NoSuchFieldException,
-            NoSuchMethodException {
+            NoSuchMethodException, NotRegisteredClassException {
         Connection connection = getConnection(plugin);
-        if(connection == null) throw new ConnectionException("Connection is not opened.");
+        if(connection == null) throw new ConnectionException(plugin + "플러그인은 연결되어 있지 않습니다.");
         Map<String, String> columns = getColumnTypes(plugin, c);
         Constructor<?> constructor = c.getDeclaredConstructors()[0];
         Object object = constructor.newInstance();
@@ -187,7 +191,6 @@ public class PlayerDatabaseManager {
             Field field = c.getDeclaredField(fieldName);
             c.getMethod(methodName, field.getType()).invoke(object, values.get(column));
         }
-        System.out.println("LOAD QUERY : " + query);
         return c.cast(object);
 
     }
@@ -198,7 +201,7 @@ public class PlayerDatabaseManager {
             IllegalAccessException,
             SQLException {
         Connection connection = getConnection(plugin);
-        if(connection == null) throw new ConnectionException("Connection is not opened.");
+        if(connection == null) throw new ConnectionException(plugin + "플러그인은 연결되어 있지 않습니다.");
         Object obj = instance.getClass().cast(instance);
         Field[] fields = instance.getClass().getDeclaredFields();
         String query = "INSERT INTO " + CaseConverter.camelToSnake(instance.getClass().getSimpleName()) + " VALUES(";
@@ -208,14 +211,33 @@ public class PlayerDatabaseManager {
             Method method = instance.getClass().getDeclaredMethod("get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1));
             Object value = method.invoke(obj);
             if(value instanceof String || value instanceof Character){
-                query += "\"" + value.toString() + "\"";
+                query += "\"" + value + "\"";
             } else query += value.toString();
             if(i != fields.length-1) query += ", ";
         }
         query += ")";
-        System.out.println("SAVE QUERY : " + query);
         Statement stm = connection.createStatement();
         stm.execute(query);
         return instance;
+    }
+
+    public List<String> getPrimaryKeys(Plugin plugin, Class c) throws ConnectionException, SQLException, NotRegisteredClassException {
+        Connection connection = getConnection(plugin);
+        if(connection == null) throw new ConnectionException(plugin + "플러그인은 연결되어 있지 않습니다.");
+        if(!isRegisteredClass(plugin, c)) throw new NotRegisteredClassException(plugin.getName() + "플러그인의 " + c.getSimpleName() + " 클래스는 등록되지 않았습니다.");
+        String columnName = getPrimaryKey(plugin, c);
+        String query = "SELECT " + columnName + " FROM " + CaseConverter.camelToSnake(c.getSimpleName());
+        List<String> result = new ArrayList<>();
+        Statement stm = connection.createStatement();
+        ResultSet set = stm.executeQuery(query);
+        while(set.next())
+            result.add(set.getString(0));
+        return result;
+    }
+
+    public boolean isRegisteredClass(Plugin plugin, Class c) throws ConnectionException {
+        Class[] classes = registeredClasses.get(plugin);
+        if(classes == null) throw new ConnectionException(plugin + "플러그인은 연결되어 있지 않습니다.");
+        return Arrays.stream(classes).filter(cl -> cl.getName().equals(c.getName())).findAny().isPresent();
     }
 }

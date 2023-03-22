@@ -1,9 +1,8 @@
 package com.teger;
 
 import com.teger.database.PlayerDatabaseManager;
-import com.teger.entity.PlayerData;
 import com.teger.exception.ConnectionException;
-import org.bukkit.Bukkit;
+import com.teger.exception.NotRegisteredClassException;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -34,11 +33,11 @@ public final class TDatabase extends JavaPlugin {
         playerDatabaseManager.closeDatabase(plugin);
     }
 
-    public void initializeDatabase(Plugin plugin, Class... classes) throws SQLException, ConnectionException {
+    public void initializeDatabase(Plugin plugin, Class... classes) throws SQLException, ConnectionException, NotRegisteredClassException {
         playerDatabaseManager.initializeDatabase(plugin, classes);
     }
 
-    public <T> T getDataFromDatabase(Plugin plugin, String pk, Class<T> c) throws SQLException, NoSuchFieldException, ConnectionException, InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchMethodException {
+    public <T> T getDataFromDatabase(Plugin plugin, String pk, Class<T> c) throws SQLException, NoSuchFieldException, ConnectionException, InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchMethodException, NotRegisteredClassException {
         return playerDatabaseManager.getInstance(plugin, pk, c);
     }
 

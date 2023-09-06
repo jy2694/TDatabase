@@ -1,13 +1,14 @@
 package com.teger;
 
 import com.teger.database.PlayerDatabaseManager;
-import com.teger.exception.ConnectionException;
-import com.teger.exception.NotRegisteredClassException;
+import com.teger.exception.*;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public final class TDatabase extends JavaPlugin {
@@ -29,19 +30,52 @@ public final class TDatabase extends JavaPlugin {
         return plugin;
     }
 
-    public void closeDatabase(Plugin plugin) throws SQLException, ConnectionException {
-        playerDatabaseManager.closeDatabase(plugin);
+    public void closeDatabase(Plugin plugin) throws CloseDatabaseException {
+        try {
+            playerDatabaseManager.closeDatabase(plugin);
+        } catch (SQLException | ConnectionException e) {
+            throw new CloseDatabaseException(e.getMessage());
+        }
     }
 
-    public void initializeDatabase(Plugin plugin, Class... classes) throws SQLException, ConnectionException, NotRegisteredClassException {
-        playerDatabaseManager.initializeDatabase(plugin, classes);
+    public void initializeDatabase(Plugin plugin, Class... classes) throws InitializeDatabaseException {
+        try {
+            playerDatabaseManager.initializeDatabase(plugin, classes);
+        } catch (ConnectionException | SQLException | NotRegisteredClassException e) {
+            throw new InitializeDatabaseException(e.getMessage());
+        }
     }
 
-    public <T> T getDataFromDatabase(Plugin plugin, String pk, Class<T> c) throws SQLException, NoSuchFieldException, ConnectionException, InvocationTargetException, InstantiationException, IllegalAccessException, NoSuchMethodException, NotRegisteredClassException {
-        return playerDatabaseManager.getInstance(plugin, pk, c);
+    public <T> T getDataFromDatabase(Plugin plugin, String pk, Class<T> c) throws NoSuchInstanceInDatabaseException {
+        try {
+            return playerDatabaseManager.getInstance(plugin, pk, c);
+        } catch (ConnectionException | SQLException | InvocationTargetException | InstantiationException |
+                 IllegalAccessException | NoSuchFieldException | NoSuchMethodException | NotRegisteredClassException e) {
+            throw new NoSuchInstanceInDatabaseException(e.getMessage());
+        }
     }
 
-    public <T> T saveData(Plugin plugin, T instance) throws SQLException, ConnectionException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
-        return playerDatabaseManager.saveInstance(plugin, instance);
+    public <T> T saveData(Plugin plugin, T instance) throws NoSuchMethodException, DatabaseSaveException {
+        try {
+            return playerDatabaseManager.saveInstance(plugin, instance);
+        } catch (ConnectionException | InvocationTargetException | IllegalAccessException | SQLException e) {
+            throw new DatabaseSaveException(e.getMessage());
+        }
+    }
+
+    public String[] getPrimaryKeysFromDatabase(Plugin plugin, Class c) throws NoSuchInstanceInDatabaseException {
+        try {
+            return playerDatabaseManager.getPrimaryKeys(plugin, c).toArray(String[]::new);
+        } catch (ConnectionException | SQLException | NotRegisteredClassException e) {
+            throw new NoSuchInstanceInDatabaseException(e.getMessage());
+        }
+    }
+
+    public <T> List<T> getAllInstance(Plugin plugin, Class<T> c) throws NoSuchInstanceInDatabaseException {
+        List<T> instanceList = new ArrayList<>();
+        for(String primaryKey : getPrimaryKeysFromDatabase(plugin, c)){
+            instanceList.add(getDataFromDatabase(plugin, primaryKey, c));
+        }
+        return instanceList;
     }
 }

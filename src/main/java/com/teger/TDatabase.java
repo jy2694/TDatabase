@@ -55,10 +55,11 @@ public final class TDatabase extends JavaPlugin {
         }
     }
 
-    public <T> T saveData(Plugin plugin, T instance) throws NoSuchMethodException, DatabaseSaveException {
+    public <T> T saveData(Plugin plugin, T instance) throws DatabaseSaveException {
         try {
             return playerDatabaseManager.saveInstance(plugin, instance);
-        } catch (ConnectionException | InvocationTargetException | IllegalAccessException | SQLException e) {
+        } catch (ConnectionException | InvocationTargetException | IllegalAccessException | SQLException |
+                 NoSuchMethodException e) {
             throw new DatabaseSaveException(e.getMessage());
         }
     }

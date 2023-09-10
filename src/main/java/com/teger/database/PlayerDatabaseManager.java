@@ -43,7 +43,7 @@ public class PlayerDatabaseManager {
             try{
                 classValidationCheck(c);
             } catch(ClassValidationException e){
-                Bukkit.getLogger().warning(e.getMessage());
+                e.printStackTrace();
                 return;
             }
         registeredClasses.put(plugin, tableClasses);

@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/TDatabase.main.iml" filepath="$PROJECT_DIR$/.idea/modules/TDatabase.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.teger.TDatabase.main.iml" filepath="$PROJECT_DIR$/.idea/modules/com.teger.TDatabase.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/my-artifact-id.main.iml" filepath="$PROJECT_DIR$/.idea/modules/my-artifact-id.main.iml" />
     </modules>
   </component>
 </project>

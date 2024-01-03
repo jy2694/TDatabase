@@ -1,5 +1,6 @@
 plugins {
-    id 'java'
+    id 'java-library'
+    id 'maven-publish'
 }
 
 group = 'com.teger'
@@ -44,5 +45,17 @@ processResources {
     filteringCharset 'UTF-8'
     filesMatching('plugin.yml') {
         expand props
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = 'com.teger' // groupId
+            artifactId = 'TDatabase'           // artifactId
+            version = '1.2'       // version
+
+            from components.java
+        }
     }
 }

@@ -15,20 +15,18 @@ SQLite를 사용하여 별도의 프로그램 설치가 필요하지 않고 플�
 ### Import
 
 * #### Gradle
-
-
-    Preparing
+```
+implementation 'io.github.jy2694:TDatabase:1.2'
+```
 
 * #### Maven
-
-
-    Preparing
-
-* #### Local
-
-
-    Preparing
-
+```
+<dependency>
+    <groupId>io.github.jy2694</groupId>
+    <artifactId>TDatabase</artifactId>
+    <version>1.2</version>
+</dependency>
+```
 ---
 
 ### Usage
